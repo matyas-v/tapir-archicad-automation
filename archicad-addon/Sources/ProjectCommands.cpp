@@ -1305,9 +1305,39 @@ GS::Optional<GS::UniString> SaveProjectCommand::GetRawResponseSchema () const
 
 GS::ObjectState SaveProjectCommand::Execute (const GS::ObjectState& /*parameters*/, GS::ProcessControl& /*processControl*/) const
 {
-    GSErrCode err = ACAPI_ProjectOperation_Save ();
+    // The parameterless ACAPI_ProjectOperation_Save () saves the content of the CURRENT
+    // WINDOW, not the project, so it fails whenever the active window is not the floor
+    // plan - a 3D window has no file of its own. Activate the floor plan for the duration
+    // of the save and put the original window back afterwards.
+    API_WindowInfo originalWindow = {};
+    const bool haveOriginalWindow = (ACAPI_Window_GetCurrentWindow (&originalWindow) == NoError);
+    const bool needsSwitch = haveOriginalWindow && originalWindow.typeID != APIWind_FloorPlanID;
+
+    if (needsSwitch) {
+        API_WindowInfo floorPlanWindow = {};
+        floorPlanWindow.typeID = APIWind_FloorPlanID;
+        if (ACAPI_Window_GetDatabaseInfo (&floorPlanWindow) == NoError) {
+            ACAPI_Database_ChangeCurrentDatabase (&floorPlanWindow);
+        }
+        const GSErrCode switchErr = ACAPI_Window_ChangeWindow (&floorPlanWindow);
+        if (switchErr != NoError) {
+            return CreateFailedExecutionResult (switchErr, "Failed to activate the floor plan window before saving.");
+        }
+    }
+
+    const GSErrCode err = ACAPI_ProjectOperation_Save ();
+
+    if (needsSwitch) {
+        if (ACAPI_Window_GetDatabaseInfo (&originalWindow) == NoError) {
+            ACAPI_Database_ChangeCurrentDatabase (&originalWindow);
+        }
+        ACAPI_Window_ChangeWindow (&originalWindow);
+    }
+
     if (err != NoError) {
-        return CreateFailedExecutionResult (APIERR_COMMANDFAILED, "Failed to save the project.");
+        // Report the error Archicad actually returned - the previous hardcoded
+        // APIERR_COMMANDFAILED hid the cause and made this failure hard to diagnose.
+        return CreateFailedExecutionResult (err, "Failed to save the project.");
     }
     return CreateSuccessfulExecutionResult ();
 }

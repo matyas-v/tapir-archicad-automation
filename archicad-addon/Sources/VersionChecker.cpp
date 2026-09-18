@@ -76,7 +76,7 @@ const GS::UniString& VersionChecker::GetVersionFromGithub ()
         HTTP::Client::ClientConnection clientConnection (connectionUrl);
         clientConnection.Connect ();
 
-        HTTP::Client::Request request (HTTP::MessageHeader::Method::Get, "/repos/ENZYME-APD/tapir-archicad-automation/releases/latest");
+        HTTP::Client::Request request (HTTP::MessageHeader::Method::Get, "/repos/matyas-v/tapir-archicad-automation/releases/latest");
         request.GetRequestHeaderFieldCollection ().Add (HTTP::MessageHeader::HeaderFieldName::UserAgent,
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36");
         clientConnection.Send (request);

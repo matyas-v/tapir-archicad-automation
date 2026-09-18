@@ -32,4 +32,10 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Tapir Add-On AC${{ matrix.params.acVersion }} Win
-        path: archicad-addon/Build/RelWithDebInfo/TapirAddOn_AC${{ matrix.params.acVersion }}_Win.apx
+        # The .pdb goes with it: the build is RelWithDebInfo, so symbols exist
+        # anyway, and without them a crash dump from the target machine resolves
+        # to bare addresses. Uploading them costs nothing and saves a deploy
+        # cycle every time the add-on takes Archicad down with it.
+        path: |
+          archicad-addon/Build/RelWithDebInfo/TapirAddOn_AC${{ matrix.params.acVersion }}_Win.apx
+          archicad-addon/Build/RelWithDebInfo/TapirAddOn_AC${{ matrix.params.acVersion }}_Win.pdb
